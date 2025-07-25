@@ -1,5 +1,5 @@
 import { GameType } from "@shared/schema";
-import { Crown, Gamepad2, Target, Crosshair, Zap, Plus } from "lucide-react";
+import { Crown, Gamepad2, Target, Crosshair, Zap, Plus, Shield } from "lucide-react";
 
 interface GameSelectionProps {
   onGameSelect: (gameId: GameType) => void;
@@ -49,6 +49,15 @@ const games = [
     description: "Track your MMR, hero performance, and strategic insights in Valve's complex MOBA.",
     icon: Zap,
     gradient: "from-purple-500 to-indigo-600",
+    available: true,
+  },
+  {
+    id: "clashroyale" as GameType,
+    name: "Clash Royale",
+    provider: "Supercell API",
+    description: "Analyze your trophy progression, deck performance, and battle statistics in this strategic card game.",
+    icon: Shield,
+    gradient: "from-amber-500 to-orange-600",
     available: true,
   },
 ];

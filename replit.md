@@ -2,7 +2,7 @@
 
 ## Overview
 
-GameStats is a full-stack web application that provides comprehensive analytics for gaming performance across multiple platforms including League of Legends, Steam, Valorant, Counter-Strike 2, and Dota 2. The application features a modern React frontend with a Node.js/Express backend, utilizing PostgreSQL for data persistence and Drizzle ORM for database operations.
+GameStats is a full-stack web application that provides comprehensive analytics for gaming performance across multiple platforms including League of Legends, Steam, Valorant, Counter-Strike 2, Dota 2, and Clash Royale. The application features a modern React frontend with a Node.js/Express backend, utilizing PostgreSQL for data persistence and Drizzle ORM for database operations.
 
 ## User Preferences
 
@@ -81,6 +81,7 @@ The application uses three main entities:
 ### Gaming APIs (Planned Integration)
 - Riot Games API (League of Legends, Valorant)
 - Steam Web API (Steam games, CS2, Dota 2)
+- Supercell API (Clash Royale)
 - Platform-specific authentication and rate limiting
 
 ## Deployment Strategy

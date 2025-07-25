@@ -70,6 +70,12 @@ const gameDetails = {
     placeholder: "Enter your Steam ID",
     regions: [],
   },
+  clashroyale: {
+    name: "Clash Royale",
+    description: "Please enter your player tag to fetch your statistics",
+    placeholder: "Enter your player tag (e.g., #ABC123XYZ)",
+    regions: [],
+  },
 };
 
 export default function PlayerInput({ selectedGame, onSubmit, onBack }: PlayerInputProps) {

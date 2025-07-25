@@ -63,7 +63,7 @@ export type InsertGameStats = z.infer<typeof insertGameStatsSchema>;
 export type GameStats = typeof gameStats.$inferSelect;
 
 // Frontend-only types for API responses
-export type GameType = "lol" | "steam" | "valorant" | "cs2" | "dota2";
+export type GameType = "lol" | "steam" | "valorant" | "cs2" | "dota2" | "clashroyale";
 
 export type PlayerAnalytics = {
   player: Player;
