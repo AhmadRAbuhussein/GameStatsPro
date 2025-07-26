@@ -6,8 +6,8 @@ import { z } from "zod";
 // Authentication tables
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull().unique(),
-  phone: text("phone"),
+  phone: text("phone").notNull().unique(),
+  email: text("email"),
   isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
@@ -15,7 +15,7 @@ export const users = pgTable("users", {
 
 export const otpCodes = pgTable("otp_codes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull(),
+  phone: text("phone").notNull(),
   code: text("code").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   isUsed: boolean("is_used").default(false),

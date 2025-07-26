@@ -12,7 +12,7 @@ import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
 const registrationSchema = z.object({
-  phone: z.string().optional(),
+  email: z.string().email().optional(),
 });
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
@@ -28,7 +28,7 @@ export default function Register() {
 
   const form = useForm<RegistrationForm>({
     resolver: zodResolver(registrationSchema),
-    defaultValues: { phone: "" },
+    defaultValues: { email: "" },
   });
 
   const completeRegistrationMutation = useMutation({
@@ -108,37 +108,37 @@ export default function Register() {
                 >
                   <User className="text-white" data-testid="profile-icon" />
                 </div>
-                <p className="text-white font-semibold" data-testid="user-email">
-                  {userInfo?.user?.email}
+                <p className="text-white font-semibold" data-testid="user-phone">
+                  {userInfo?.user?.phone}
                 </p>
               </div>
 
               <FormField
                 control={form.control}
-                name="phone"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300" data-testid="label-phone">
-                      Phone Number (Optional)
+                    <FormLabel className="text-gray-300" data-testid="label-email">
+                      Email Address (Optional)
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           {...field}
-                          type="tel"
-                          placeholder="Enter your phone number"
+                          type="email"
+                          placeholder="Enter your email address"
                           className="pl-10"
                           style={{ 
                             backgroundColor: 'var(--gaming-dark)', 
                             borderColor: 'var(--gaming-accent)',
                             color: 'white'
                           }}
-                          data-testid="input-phone"
+                          data-testid="input-email"
                         />
                         <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       </div>
                     </FormControl>
-                    <p className="text-sm text-gray-400" data-testid="help-phone">
+                    <p className="text-sm text-gray-400" data-testid="help-email">
                       Optional: For account recovery and notifications
                     </p>
                     <FormMessage />

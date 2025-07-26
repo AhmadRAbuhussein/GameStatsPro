@@ -12,18 +12,18 @@ const playerRequestSchema = z.object({
   region: z.string().optional(),
 });
 
-const emailSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+const phoneSchema = z.object({
+  phone: z.string().min(10, "Please enter a valid phone number").regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format"),
 });
 
 const otpVerificationSchema = z.object({
-  email: z.string().email(),
+  phone: z.string().min(10),
   code: z.string().length(6, "OTP code must be 6 digits"),
 });
 
 const registrationSchema = z.object({
-  email: z.string().email(),
-  phone: z.string().optional(),
+  phone: z.string().min(10),
+  email: z.string().email().optional(),
 });
 
 // Extended request interface with session support
@@ -50,7 +50,7 @@ async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextF
       return res.status(401).json({ message: "Session expired" });
     }
 
-    const user = await storage.getUserByEmail(session.userId);
+    const user = await storage.getUserById(session.userId);
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
@@ -68,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/request-otp", async (req, res) => {
     try {
-      const { email } = emailSchema.parse(req.body);
+      const { phone } = phoneSchema.parse(req.body);
       
       // Generate 6-digit OTP
       const code = randomInt(100000, 999999).toString();
@@ -76,16 +76,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Store OTP
       await storage.createOtpCode({
-        email,
+        phone,
         code,
         expiresAt,
       });
       
-      // In a real app, send email here
-      console.log(`OTP for ${email}: ${code}`);
+      // In a real app, send SMS here
+      console.log(`OTP for ${phone}: ${code}`);
       
       res.json({ 
-        message: "OTP sent to your email",
+        message: "OTP sent to your phone",
         // For demo purposes, return the OTP
         otp: code 
       });
@@ -93,7 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error requesting OTP:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
-          message: "Invalid email address",
+          message: "Invalid phone number",
           errors: error.errors 
         });
       }
@@ -103,10 +103,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/verify-otp", async (req, res) => {
     try {
-      const { email, code } = otpVerificationSchema.parse(req.body);
+      const { phone, code } = otpVerificationSchema.parse(req.body);
       
       // Verify OTP
-      const otp = await storage.getOtpCode(email, code);
+      const otp = await storage.getOtpCode(phone, code);
       if (!otp) {
         return res.status(400).json({ message: "Invalid or expired OTP" });
       }
@@ -115,13 +115,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.markOtpAsUsed(otp.id);
       
       // Check if user exists
-      let user = await storage.getUserByEmail(email);
+      let user = await storage.getUserByPhone(phone);
       const isNewUser = !user;
       
       if (!user) {
         // Create new user
         user = await storage.createUser({
-          email,
+          phone,
           isVerified: true,
         });
       } else {
@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         message: "OTP verified successfully",
         isNewUser,
-        user: { id: user!.id, email: user!.email, isVerified: user!.isVerified }
+        user: { id: user!.id, phone: user!.phone, email: user!.email, isVerified: user!.isVerified }
       });
     } catch (error) {
       console.error("Error verifying OTP:", error);
@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/complete-registration", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const { phone } = registrationSchema.omit({ email: true }).parse(req.body);
+      const { email } = registrationSchema.omit({ phone: true }).parse(req.body);
       
       if (!req.user) {
         return res.status(401).json({ message: "User not authenticated" });
@@ -169,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update user profile
       const updatedUser = await storage.updateUser(req.user.id, {
-        phone: phone || null,
+        email: email || null,
       });
       
       res.json({ 
@@ -209,8 +209,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ 
       user: { 
         id: req.user!.id, 
-        email: req.user!.email, 
-        phone: req.user!.phone,
+        phone: req.user!.phone, 
+        email: req.user!.email,
         isVerified: req.user!.isVerified 
       } 
     });

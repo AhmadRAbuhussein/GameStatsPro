@@ -85,8 +85,8 @@ export default function Dashboard() {
               <button className="p-2 text-gray-400 hover:text-white transition-colors duration-200" data-testid="button-notifications">
                 <Bell />
               </button>
-              <span className="text-gray-300 text-sm" data-testid="user-email">
-                {user?.email}
+              <span className="text-gray-300 text-sm" data-testid="user-phone">
+                {user?.phone}
               </span>
               <button 
                 onClick={logout}

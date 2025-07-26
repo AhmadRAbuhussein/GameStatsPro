@@ -4,8 +4,8 @@ import { apiRequest } from "@/lib/queryClient";
 
 interface User {
   id: string;
-  email: string;
-  phone?: string | null;
+  phone: string;
+  email?: string | null;
   isVerified: boolean;
 }
 

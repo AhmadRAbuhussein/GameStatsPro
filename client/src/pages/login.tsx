@@ -12,44 +12,44 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
-const emailSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+const phoneSchema = z.object({
+  phone: z.string().min(10, "Please enter a valid phone number").regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format"),
 });
 
 const otpSchema = z.object({
-  email: z.string().email(),
+  phone: z.string().min(10),
   code: z.string().length(6, "OTP code must be 6 digits"),
 });
 
-type EmailForm = z.infer<typeof emailSchema>;
+type PhoneForm = z.infer<typeof phoneSchema>;
 type OtpForm = z.infer<typeof otpSchema>;
 
 export default function Login() {
-  const [step, setStep] = useState<"email" | "otp">("email");
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [phone, setPhone] = useState("");
   const [, setLocation] = useLocation();
 
-  const emailForm = useForm<EmailForm>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { email: "" },
+  const phoneForm = useForm<PhoneForm>({
+    resolver: zodResolver(phoneSchema),
+    defaultValues: { phone: "" },
   });
 
   const otpForm = useForm<OtpForm>({
     resolver: zodResolver(otpSchema),
-    defaultValues: { email: "", code: "" },
+    defaultValues: { phone: "", code: "" },
   });
 
   const requestOtpMutation = useMutation({
-    mutationFn: async (data: EmailForm) => {
+    mutationFn: async (data: PhoneForm) => {
       return apiRequest("/api/auth/request-otp", {
         method: "POST",
         body: JSON.stringify(data),
       });
     },
     onSuccess: (data, variables) => {
-      setEmail(variables.email);
+      setPhone(variables.phone);
       setStep("otp");
-      otpForm.setValue("email", variables.email);
+      otpForm.setValue("phone", variables.phone);
       // For demo purposes, show the OTP in console
       if (data.otp) {
         console.log("Demo OTP:", data.otp);
@@ -73,7 +73,7 @@ export default function Login() {
     },
   });
 
-  const handleEmailSubmit = (data: EmailForm) => {
+  const handlePhoneSubmit = (data: PhoneForm) => {
     requestOtpMutation.mutate(data);
   };
 
@@ -81,9 +81,9 @@ export default function Login() {
     verifyOtpMutation.mutate(data);
   };
 
-  const handleBackToEmail = () => {
-    setStep("email");
-    setEmail("");
+  const handleBackToPhone = () => {
+    setStep("phone");
+    setPhone("");
     otpForm.reset();
   };
 
@@ -102,9 +102,9 @@ export default function Login() {
             Welcome to GameStats
           </h1>
           <p className="text-gray-400 mt-2" data-testid="login-subtitle">
-            {step === "email" 
-              ? "Enter your email to get started" 
-              : "Enter the verification code sent to your email"
+            {step === "phone" 
+              ? "Enter your phone number to get started" 
+              : "Enter the verification code sent to your phone"
             }
           </p>
         </div>
@@ -114,36 +114,36 @@ export default function Login() {
           className="rounded-xl border p-8"
           style={{ backgroundColor: 'var(--gaming-secondary)', borderColor: 'var(--gaming-accent)' }}
         >
-          {step === "email" ? (
-            <Form {...emailForm}>
-              <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-6">
+          {step === "phone" ? (
+            <Form {...phoneForm}>
+              <form onSubmit={phoneForm.handleSubmit(handlePhoneSubmit)} className="space-y-6">
                 <FormField
-                  control={emailForm.control}
-                  name="email"
+                  control={phoneForm.control}
+                  name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-300" data-testid="label-email">
-                        Email Address
+                      <FormLabel className="text-gray-300" data-testid="label-phone">
+                        Phone Number
                       </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
                             {...field}
-                            type="email"
-                            placeholder="Enter your email address"
+                            type="tel"
+                            placeholder="Enter your phone number"
                             className="pl-10"
                             style={{ 
                               backgroundColor: 'var(--gaming-dark)', 
                               borderColor: 'var(--gaming-accent)',
                               color: 'white'
                             }}
-                            data-testid="input-email"
+                            data-testid="input-phone"
                           />
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         </div>
                       </FormControl>
-                      <p className="text-sm text-gray-400" data-testid="help-email">
-                        We'll send you a verification code
+                      <p className="text-sm text-gray-400" data-testid="help-phone">
+                        We'll send you a verification code via SMS
                       </p>
                       <FormMessage />
                     </FormItem>
@@ -178,8 +178,8 @@ export default function Login() {
                   <p className="text-gray-300" data-testid="otp-sent-message">
                     Verification code sent to:
                   </p>
-                  <p className="text-white font-semibold" data-testid="otp-email">
-                    {email}
+                  <p className="text-white font-semibold" data-testid="otp-phone">
+                    {phone}
                   </p>
                 </div>
 
@@ -206,7 +206,7 @@ export default function Login() {
                         />
                       </FormControl>
                       <p className="text-sm text-gray-400" data-testid="help-otp">
-                        Check your email for the 6-digit verification code
+                        Check your phone for the 6-digit verification code
                       </p>
                       <FormMessage />
                     </FormItem>
@@ -234,16 +234,16 @@ export default function Login() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleBackToEmail}
+                    onClick={handleBackToPhone}
                     className="w-full"
                     style={{ 
                       borderColor: 'var(--gaming-accent)',
                       color: 'white',
                       backgroundColor: 'transparent'
                     }}
-                    data-testid="button-back-email"
+                    data-testid="button-back-phone"
                   >
-                    Back to Email
+                    Back to Phone
                   </Button>
                 </div>
               </form>

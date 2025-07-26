@@ -3,12 +3,13 @@ import { randomUUID } from "crypto";
 
 export interface IStorage {
   // Auth methods
-  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByPhone(phone: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
   createOtpCode(otp: InsertOtpCode): Promise<OtpCode>;
-  getOtpCode(email: string, code: string): Promise<OtpCode | undefined>;
+  getOtpCode(phone: string, code: string): Promise<OtpCode | undefined>;
   markOtpAsUsed(id: string): Promise<void>;
   
   createSession(session: InsertSession): Promise<Session>;
@@ -46,8 +47,12 @@ export class MemStorage implements IStorage {
   }
 
   // Auth methods
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.phone === phone);
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    return this.users.get(id);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -55,7 +60,7 @@ export class MemStorage implements IStorage {
     const user: User = {
       ...insertUser,
       id,
-      phone: insertUser.phone || null,
+      email: insertUser.email || null,
       isVerified: false,
       createdAt: new Date(),
       lastLoginAt: null,
@@ -85,9 +90,9 @@ export class MemStorage implements IStorage {
     return otp;
   }
 
-  async getOtpCode(email: string, code: string): Promise<OtpCode | undefined> {
+  async getOtpCode(phone: string, code: string): Promise<OtpCode | undefined> {
     return Array.from(this.otpCodes.values()).find(
-      otp => otp.email === email && otp.code === code && !otp.isUsed && otp.expiresAt > new Date()
+      otp => otp.phone === phone && otp.code === code && !otp.isUsed && otp.expiresAt > new Date()
     );
   }
 
