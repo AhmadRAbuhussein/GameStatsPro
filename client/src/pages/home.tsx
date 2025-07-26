@@ -3,11 +3,13 @@ import { useLocation } from "wouter";
 import GameSelection from "@/components/game-selection";
 import PlayerInput from "@/components/player-input";
 import { GameType } from "@shared/schema";
-import { Gamepad2, Bell } from "lucide-react";
+import { Gamepad2, Bell, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Home() {
   const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
   const [, setLocation] = useLocation();
+  const { user, logout } = useAuth();
 
   const handleGameSelect = (gameId: GameType) => {
     setSelectedGame(gameId);
@@ -47,6 +49,17 @@ export default function Home() {
             <div className="flex items-center space-x-4">
               <button className="p-2 text-gray-400 hover:text-white transition-colors duration-200" data-testid="button-notifications">
                 <Bell />
+              </button>
+              <span className="text-gray-300 text-sm" data-testid="user-email">
+                {user?.email}
+              </span>
+              <button 
+                onClick={logout}
+                className="p-2 text-gray-400 hover:text-red-400 transition-colors duration-200" 
+                data-testid="button-logout"
+                title="Logout"
+              >
+                <LogOut />
               </button>
               <div 
                 className="w-8 h-8 rounded-full"

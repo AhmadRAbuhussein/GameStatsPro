@@ -3,11 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import AnalyticsDashboard from "@/components/analytics-dashboard";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { PlayerAnalytics } from "@shared/schema";
-import { Gamepad2, Bell, ArrowLeft } from "lucide-react";
+import { Gamepad2, Bell, ArrowLeft, LogOut } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Dashboard() {
   const [match, params] = useRoute("/dashboard/:gameId/:playerId");
+  const { user, logout } = useAuth();
   
   if (!match) return null;
   
@@ -82,6 +84,17 @@ export default function Dashboard() {
             <div className="flex items-center space-x-4">
               <button className="p-2 text-gray-400 hover:text-white transition-colors duration-200" data-testid="button-notifications">
                 <Bell />
+              </button>
+              <span className="text-gray-300 text-sm" data-testid="user-email">
+                {user?.email}
+              </span>
+              <button 
+                onClick={logout}
+                className="p-2 text-gray-400 hover:text-red-400 transition-colors duration-200" 
+                data-testid="button-logout"
+                title="Logout"
+              >
+                <LogOut />
               </button>
               <div 
                 className="w-8 h-8 rounded-full"

@@ -1,19 +1,223 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPlayerSchema, insertGameStatsSchema, type PlayerAnalytics, type GameType } from "@shared/schema";
+import { insertPlayerSchema, insertGameStatsSchema, type PlayerAnalytics, type GameType, type User } from "@shared/schema";
 import { z } from "zod";
+import { randomInt } from "crypto";
 
+// Request schemas
 const playerRequestSchema = z.object({
   gameId: z.enum(["lol", "steam", "valorant", "cs2", "dota2", "clashroyale"]),
   playerId: z.string().min(1),
   region: z.string().optional(),
 });
 
+const emailSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+const otpVerificationSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6, "OTP code must be 6 digits"),
+});
+
+const registrationSchema = z.object({
+  email: z.string().email(),
+  phone: z.string().optional(),
+});
+
+// Extended request interface with session support
+declare module 'express-session' {
+  interface SessionData {
+    sessionId?: string;
+  }
+}
+
+interface AuthenticatedRequest extends Request {
+  user?: User;
+}
+
+// Authentication middleware
+async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const sessionId = req.session?.sessionId;
+    if (!sessionId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const session = await storage.getSession(sessionId);
+    if (!session) {
+      return res.status(401).json({ message: "Session expired" });
+    }
+
+    const user = await storage.getUserByEmail(session.userId);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    res.status(500).json({ message: "Authentication error" });
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Authentication routes
+  app.post("/api/auth/request-otp", async (req, res) => {
+    try {
+      const { email } = emailSchema.parse(req.body);
+      
+      // Generate 6-digit OTP
+      const code = randomInt(100000, 999999).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      
+      // Store OTP
+      await storage.createOtpCode({
+        email,
+        code,
+        expiresAt,
+      });
+      
+      // In a real app, send email here
+      console.log(`OTP for ${email}: ${code}`);
+      
+      res.json({ 
+        message: "OTP sent to your email",
+        // For demo purposes, return the OTP
+        otp: code 
+      });
+    } catch (error) {
+      console.error("Error requesting OTP:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid email address",
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to send OTP" });
+    }
+  });
+
+  app.post("/api/auth/verify-otp", async (req, res) => {
+    try {
+      const { email, code } = otpVerificationSchema.parse(req.body);
+      
+      // Verify OTP
+      const otp = await storage.getOtpCode(email, code);
+      if (!otp) {
+        return res.status(400).json({ message: "Invalid or expired OTP" });
+      }
+      
+      // Mark OTP as used
+      await storage.markOtpAsUsed(otp.id);
+      
+      // Check if user exists
+      let user = await storage.getUserByEmail(email);
+      const isNewUser = !user;
+      
+      if (!user) {
+        // Create new user
+        user = await storage.createUser({
+          email,
+          isVerified: true,
+        });
+      } else {
+        // Update existing user as verified
+        user = await storage.updateUser(user.id, {
+          isVerified: true,
+          lastLoginAt: new Date(),
+        });
+      }
+      
+      // Create session
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      const session = await storage.createSession({
+        userId: user!.id,
+        expiresAt,
+      });
+      
+      // Set session in cookie
+      req.session.sessionId = session.id;
+      
+      res.json({ 
+        message: "OTP verified successfully",
+        isNewUser,
+        user: { id: user!.id, email: user!.email, isVerified: user!.isVerified }
+      });
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid OTP format",
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to verify OTP" });
+    }
+  });
+
+  app.post("/api/auth/complete-registration", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { phone } = registrationSchema.omit({ email: true }).parse(req.body);
+      
+      if (!req.user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      // Update user profile
+      const updatedUser = await storage.updateUser(req.user.id, {
+        phone: phone || null,
+      });
+      
+      res.json({ 
+        message: "Registration completed successfully",
+        user: updatedUser 
+      });
+    } catch (error) {
+      console.error("Error completing registration:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid registration data",
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to complete registration" });
+    }
+  });
+
+  app.post("/api/auth/logout", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const sessionId = req.session?.sessionId;
+      if (sessionId) {
+        await storage.deleteSession(sessionId);
+        req.session.destroy((err: any) => {
+          if (err) console.error("Session destroy error:", err);
+        });
+      }
+      
+      res.json({ message: "Logged out successfully" });
+    } catch (error) {
+      console.error("Error during logout:", error);
+      res.status(500).json({ message: "Failed to logout" });
+    }
+  });
+
+  app.get("/api/auth/me", requireAuth, async (req: AuthenticatedRequest, res) => {
+    res.json({ 
+      user: { 
+        id: req.user!.id, 
+        email: req.user!.email, 
+        phone: req.user!.phone,
+        isVerified: req.user!.isVerified 
+      } 
+    });
+  });
+  
   // Fetch player analytics
-  app.get("/api/player/:gameId/:playerId", async (req, res) => {
+  app.get("/api/player/:gameId/:playerId", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const { gameId, playerId } = req.params;
       const { region } = req.query;
@@ -26,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Check if player exists in storage
-      let player = await storage.getPlayer(validatedData.gameId, validatedData.playerId);
+      let player = await storage.getPlayer(validatedData.gameId, validatedData.playerId, req.user!.id);
       
       if (!player) {
         // Fetch from external API and create new player
@@ -40,6 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Create player record
         player = await storage.createPlayer({
+          userId: req.user!.id,
           gameId: validatedData.gameId,
           playerId: validatedData.playerId,
           username: apiData.username,
@@ -108,12 +313,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Refresh player data
-  app.post("/api/player/:gameId/:playerId/refresh", async (req, res) => {
+  app.post("/api/player/:gameId/:playerId/refresh", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const { gameId, playerId } = req.params;
       const { region } = req.body;
 
-      const player = await storage.getPlayer(gameId as GameType, playerId);
+      const player = await storage.getPlayer(gameId as GameType, playerId, req.user!.id);
       if (!player) {
         return res.status(404).json({ message: "Player not found" });
       }

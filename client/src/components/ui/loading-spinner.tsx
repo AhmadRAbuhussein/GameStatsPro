@@ -1,18 +1,12 @@
-import { cn } from "@/lib/utils";
-
 interface LoadingSpinnerProps {
   className?: string;
 }
 
-export default function LoadingSpinner({ className }: LoadingSpinnerProps) {
+export default function LoadingSpinner({ className = "h-8 w-8" }: LoadingSpinnerProps) {
   return (
     <div 
-      className={cn("animate-spin rounded-full border-b-2", className)}
-      style={{ 
-        borderColor: 'transparent transparent var(--gaming-pink) transparent',
-        width: '32px',
-        height: '32px'
-      }}
+      className={`animate-spin rounded-full border-2 border-t-transparent ${className}`}
+      style={{ borderColor: 'var(--gaming-pink)', borderTopColor: 'transparent' }}
       data-testid="loading-spinner"
     />
   );

@@ -1,8 +1,22 @@
-import { type Player, type InsertPlayer, type Match, type InsertMatch, type GameStats, type InsertGameStats } from "@shared/schema";
+import { type Player, type InsertPlayer, type Match, type InsertMatch, type GameStats, type InsertGameStats, type User, type InsertUser, type OtpCode, type InsertOtpCode, type Session, type InsertSession } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
-  getPlayer(gameId: string, playerId: string): Promise<Player | undefined>;
+  // Auth methods
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  
+  createOtpCode(otp: InsertOtpCode): Promise<OtpCode>;
+  getOtpCode(email: string, code: string): Promise<OtpCode | undefined>;
+  markOtpAsUsed(id: string): Promise<void>;
+  
+  createSession(session: InsertSession): Promise<Session>;
+  getSession(sessionId: string): Promise<Session | undefined>;
+  deleteSession(sessionId: string): Promise<void>;
+  
+  // Player methods
+  getPlayer(gameId: string, playerId: string, userId: string): Promise<Player | undefined>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   updatePlayer(id: string, updates: Partial<Player>): Promise<Player | undefined>;
   
@@ -15,19 +29,105 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  private users: Map<string, User>;
+  private otpCodes: Map<string, OtpCode>;
+  private sessions: Map<string, Session>;
   private players: Map<string, Player>;
   private matches: Map<string, Match>;
   private gameStats: Map<string, GameStats>;
 
   constructor() {
+    this.users = new Map();
+    this.otpCodes = new Map();
+    this.sessions = new Map();
     this.players = new Map();
     this.matches = new Map();
     this.gameStats = new Map();
   }
 
-  async getPlayer(gameId: string, playerId: string): Promise<Player | undefined> {
+  // Auth methods
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = randomUUID();
+    const user: User = {
+      ...insertUser,
+      id,
+      phone: insertUser.phone || null,
+      isVerified: false,
+      createdAt: new Date(),
+      lastLoginAt: null,
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser: User = { ...user, ...updates };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async createOtpCode(insertOtp: InsertOtpCode): Promise<OtpCode> {
+    const id = randomUUID();
+    const otp: OtpCode = {
+      ...insertOtp,
+      id,
+      isUsed: false,
+      createdAt: new Date(),
+    };
+    this.otpCodes.set(id, otp);
+    return otp;
+  }
+
+  async getOtpCode(email: string, code: string): Promise<OtpCode | undefined> {
+    return Array.from(this.otpCodes.values()).find(
+      otp => otp.email === email && otp.code === code && !otp.isUsed && otp.expiresAt > new Date()
+    );
+  }
+
+  async markOtpAsUsed(id: string): Promise<void> {
+    const otp = this.otpCodes.get(id);
+    if (otp) {
+      this.otpCodes.set(id, { ...otp, isUsed: true });
+    }
+  }
+
+  async createSession(insertSession: InsertSession): Promise<Session> {
+    const id = randomUUID();
+    const session: Session = {
+      ...insertSession,
+      id,
+      createdAt: new Date(),
+    };
+    this.sessions.set(id, session);
+    return session;
+  }
+
+  async getSession(sessionId: string): Promise<Session | undefined> {
+    const session = this.sessions.get(sessionId);
+    if (session && session.expiresAt > new Date()) {
+      return session;
+    }
+    if (session) {
+      this.sessions.delete(sessionId);
+    }
+    return undefined;
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    this.sessions.delete(sessionId);
+  }
+
+  // Player methods
+  async getPlayer(gameId: string, playerId: string, userId: string): Promise<Player | undefined> {
     return Array.from(this.players.values()).find(
-      (player) => player.gameId === gameId && player.playerId === playerId
+      (player) => player.gameId === gameId && player.playerId === playerId && player.userId === userId
     );
   }
 

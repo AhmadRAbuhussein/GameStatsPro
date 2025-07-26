@@ -2,7 +2,7 @@
 
 ## Overview
 
-GameStats is a full-stack web application that provides comprehensive analytics for gaming performance across multiple platforms including League of Legends, Steam, Valorant, Counter-Strike 2, Dota 2, and Clash Royale. The application features a modern React frontend with a Node.js/Express backend, utilizing PostgreSQL for data persistence and Drizzle ORM for database operations.
+GameStats is a full-stack web application that provides comprehensive analytics for gaming performance across multiple platforms including League of Legends, Steam, Valorant, Counter-Strike 2, Dota 2, and Clash Royale. The application features a modern React frontend with a Node.js/Express backend, utilizing PostgreSQL for data persistence and Drizzle ORM for database operations. The app includes a complete authentication system with OTP-based login and user registration.
 
 ## User Preferences
 
@@ -35,11 +35,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Key Components
 
+### Authentication System
+The application features a comprehensive OTP-based authentication system:
+1. **User Registration/Login**: Email-based authentication with 6-digit OTP verification
+2. **Session Management**: Secure session handling with PostgreSQL storage and automatic expiration
+3. **Route Protection**: Protected routes requiring authentication to access gaming analytics
+4. **User Context**: React context for managing authentication state across the application
+
 ### Database Schema
-The application uses three main entities:
-1. **Players**: Stores player profiles with game-specific identifiers, usernames, regions, ranks, and profile metadata
-2. **Matches**: Records individual match data including results, duration, champions, KDA, and match-specific statistics
-3. **Game Stats**: Aggregated statistics like win rates, average KDA, total playtime, and current LP
+The application uses several main entities:
+1. **Users**: Stores user accounts with email, phone, verification status, and timestamps
+2. **OTP Codes**: Manages one-time passwords with expiration and usage tracking
+3. **Sessions**: Handles user sessions with automatic cleanup and security
+4. **Players**: Stores player profiles with game-specific identifiers, usernames, regions, ranks, and profile metadata
+5. **Matches**: Records individual match data including results, duration, champions, KDA, and match-specific statistics
+6. **Game Stats**: Aggregated statistics like win rates, average KDA, total playtime, and current LP
 
 ### Frontend Components
 - **Game Selection**: Interactive grid for choosing gaming platforms
